@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Disease Detection{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="/static/style.css">
+</head>
+<body>
+<div class="main-container">
+    <div class="link-section">
+        <a href="/" class="btn">Home</a>
+        <a href="/hair" class="btn">Hair Disease Detection</a>
+        <a href="/skin" class="btn">Skin Disease Detection</a>
+        <a href="/wound" class="btn">Wound Disease Detection</a>
+    </div>
+
+    {% block content %}
+    {% endblock %}
+</div>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Hair Disease Detection{% endblock %}
+{% block content %}
+<h1>Hair Disease Detection</h1>
+<form action="/predict_hair" method="post" enctype="multipart/form-data">
+    <input type="file" name="file" required>
+    <button type="submit" class="btn">Predict</button>
+</form>
+{% if prediction %}
+<div class="result-section">
+    {% if confidence >= 70 %}
+    <div class="image-preview">
+        <img src="{{ url_for('static', filename=image_path) }}" alt="Uploaded Image">
+    </div>
+    <p>Prediction Result: {{ prediction }}</p>
+    <p>Confidence: {{ confidence }}%</p>
+    <img src="{{ grad_cam }}" alt="Grad-CAM Heatmap" class="heatmap">
+    {% else %}
+    <p>Please upload a good photo.</p>
+    <p>Rules:</p>
+    <ul>
+        <li>The photo should be clear.</li>
+        <li>The photo should be zoomed in.</li>
+        <li>Proper lighting is required.</li>
+    </ul>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
