@@ -1,4 +1,3 @@
 hair_model.h5
 model/model_weights.keras
-hair_model.h5
-model/model_weights.keras
+.env

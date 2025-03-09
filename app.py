@@ -15,7 +15,17 @@ disease_model = tf.keras.models.load_model('hair_model.h5')
 class_names = ["Alopecia Areata","Contact Dermatitis","Folliculitis","Head Lice", "Lichen Planus", "Male Pattern Baldness","Psoriasis","Seborrheic Dermatitis","Telogen Effluvium","Tinea Capitis"]
 
 # Gemini API Configuration
-API_KEY = "AIzaSyB-6g09vmVO6Q8XFvYcrD5_Imilu3i4EDA"
+
+import os
+from dotenv import load_dotenv  # Import dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Get the API key from environment variable
+API_KEY = os.getenv("GEMINI_API_KEY")
+
+
 API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent"
 
 print(app.static_folder)
