@@ -1,87 +1,101 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, request, render_template
+import tensorflow as tf
+import numpy as np
 import os
+from PIL import Image
 import requests
-from tensorflow.keras.models import load_model
+import json
+import base64
+
 
 app = Flask(__name__)
-UPLOAD_FOLDER = 'static/uploads/'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-hair_model = load_model('hair_model.h5')
-API_KEY_SKIN = 'YOUR_SKIN_API_KEY'
-API_KEY_WOUND = 'YOUR_WOUND_API_KEY'
-API_URL_SKIN = 'https://your-skin-api-endpoint/predict'
-API_URL_WOUND = 'https://your-wound-api-endpoint/predict'
-GRAD_CAM_URL_SKIN = 'https://your-skin-api-endpoint/gradcam'
-GRAD_CAM_URL_WOUND = 'https://your-wound-api-endpoint/gradcam'
+# Load Hair Disease Detection Model
+disease_model = tf.keras.models.load_model('hair_model.h5')
+class_names = ["Alopecia Areata","Contact Dermatitis","Folliculitis","Head Lice", "Lichen Planus", "Male Pattern Baldness","Psoriasis","Seborrheic Dermatitis","Telogen Effluvium","Tinea Capitis"]
+
+# Gemini API Configuration
+API_KEY = "AIzaSyB-6g09vmVO6Q8XFvYcrD5_Imilu3i4EDA"
+API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent"
+
+print(app.static_folder)
 
 @app.route('/')
-def home():
+def index():
     return render_template('index.html')
 
-@app.route('/hair')
-def hair_page():
+@app.route('/hair', methods=['GET', 'POST'])
+def hair():
+    if request.method == 'POST':
+        file = request.files['image']
+        if file:
+            img = Image.open(file).resize((224, 224))
+            img_array = np.array(img) / 255.0
+            img_array = np.expand_dims(img_array, axis=0)
+            prediction = disease_model.predict(img_array)
+            predicted_class = class_names[np.argmax(prediction)]
+            confidence = np.max(prediction)
+            file_path = os.path.join('static', 'uploads', file.filename)
+            file.save(file_path)
+            return render_template('hair_result.html', result=predicted_class, confidence=confidence, image_file=file.filename)
     return render_template('hair.html')
 
-@app.route('/skin')
-def skin_page():
+@app.route('/hair_result')
+def hair_result():
+    return render_template('hair_result.html')
+
+def get_gemini_response(image_bytes):
+    API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + API_KEY
+    base64_image = base64.b64encode(image_bytes).decode('utf-8')
+
+    headers = {
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "contents": [{
+            "parts": [
+                {"inline_data": {
+                    "mime_type": "image/jpeg",
+                    "data": base64_image
+                }},
+                {"text": "What does this image represent? Provide the output with the following categorized information only:- Other Names- Symptoms- Probable causes- Severity Levels (categorized as Mild, Moderate, or Severe)- Please consult a doctorEnsure the response is in plain text without any text decorations, highlights, or special formatting.Give each parameter in new line"}
+            ]
+        }]
+    }
+
+    response = requests.post(API_URL, headers=headers, data=json.dumps(payload))
+
+    if response.status_code == 200:
+        try:
+            return response.json()['candidates'][0]['content']['parts'][0]['text']
+        except (KeyError, IndexError):
+            return "Invalid response format from API."
+    else:
+        return f"API Error: {response.status_code}, {response.text}"
+
+@app.route('/skin', methods=['GET', 'POST'])
+def skin():
+    if request.method == 'POST':
+        file = request.files['image']
+        if file:
+            img_bytes = file.read()
+            result = get_gemini_response(img_bytes)
+            print("API Response:", result)
+            return render_template('skin.html', result=result)
     return render_template('skin.html')
 
-@app.route('/wound')
-def wound_page():
+@app.route('/wound', methods=['GET', 'POST'])
+def wound():
+    if request.method == 'POST':
+        file = request.files['image']
+        if file:
+            img_bytes = file.read()
+            result = get_gemini_response(img_bytes)
+            print("API Response:", result)
+            return render_template('wound.html', result=result)
     return render_template('wound.html')
 
-@app.route('/predict_hair', methods=['POST'])
-def predict_hair():
-    file = request.files['file']
-    if file:
-        filename = file.filename
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
-
-        img = load_and_preprocess_image(filepath)
-        prediction = hair_model.predict(img)
-        predicted_class_index = prediction.argmax()
-        confidence = prediction[0][predicted_class_index]
-        class_labels = ['class1', 'class2', 'class3'] # Replace with your class labels
-        predicted_class = class_labels[predicted_class_index]
-
-        return render_template('hair.html', prediction=predicted_class, confidence=confidence, image_path='uploads/' + filename)
-
-    return redirect(url_for('hair_page'))
-
-@app.route('/predict_skin', methods=['POST'])
-def predict_skin():
-    return predict_api('skin', API_URL_SKIN, API_KEY_SKIN, GRAD_CAM_URL_SKIN)
-
-@app.route('/predict_wound', methods=['POST'])
-def predict_wound():
-    return predict_api('wound', API_URL_WOUND, API_KEY_WOUND, GRAD_CAM_URL_WOUND)
-
-def predict_api(model_name, api_url, api_key, gradcam_url):
-    file = request.files['file']
-    if file:
-        filename = file.filename
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
-        with open(filepath, 'rb') as image_file:
-            response = requests.post(api_url, files={'file': image_file}, headers={'Authorization': f'Bearer {api_key}'})
-            gradcam_response = requests.post(gradcam_url, files={'file': image_file}, headers={'Authorization': f'Bearer {api_key}'})
-
-            if response.status_code == 200 and gradcam_response.status_code == 200:
-                result = response.json()
-                grad_cam_url = gradcam_response.json()['grad_cam_url']
-                return render_template(f'{model_name}.html', prediction=result['class'], confidence=result['confidence'], image_path='uploads/' + filename, grad_cam=grad_cam_url)
-
-    return redirect(url_for(f'{model_name}_page'))
-
-def load_and_preprocess_image(filepath):
-    img = cv2.imread(filepath)
-    img = cv2.resize(img, (224, 224))  # Adjust size as needed for your model
-    img = img / 255.0
-    img = np.expand_dims(img, axis=0)
-    return img
-
 if __name__ == '__main__':
-    app.run(debug=True, port=8000)
+    app.run(debug=True)
+
+

@@ -1,29 +1,18 @@
-{% extends "base.html" %}
-{% block title %}Wound Disease Detection{% endblock %}
-{% block content %}
-<h1>Wound Disease Detection</h1>
-<form action="/predict_wound" method="post" enctype="multipart/form-data">
-    <input type="file" name="file" required>
-    <button type="submit" class="btn">Predict</button>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Wound Detection</title>
+    <link rel="stylesheet" href="/static/style.css">
+
+</head>
+<body>
+<h1>Wound Detection</h1>
+<form action="/wound" method="post" enctype="multipart/form-data">
+    <input type="file" name="image" required>
+    <button type="submit">Analyze</button>
 </form>
-{% if prediction %}
-<div class="result-section">
-    {% if confidence >= 70 %}
-    <div class="image-preview">
-        <img src="{{ url_for('static', filename=image_path) }}" alt="Uploaded Image">
-    </div>
-    <p>Prediction Result: {{ prediction }}</p>
-    <p>Confidence: {{ confidence }}%</p>
-    <img src="{{ grad_cam }}" alt="Grad-CAM Heatmap" class="heatmap">
-    {% else %}
-    <p>Please upload a good photo.</p>
-    <p>Rules:</p>
-    <ul>
-        <li>The photo should be clear.</li>
-        <li>The photo should be zoomed in.</li>
-        <li>Proper lighting is required.</li>
-    </ul>
-    {% endif %}
-</div>
+{% if result %}
+<p>Result: {{ result }}</p>
 {% endif %}
-{% endblock %}
+</body>
+</html>

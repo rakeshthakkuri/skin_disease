@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hair Disease Detection Result</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Hair Disease Detection Result</h1>
+        <h2>Prediction: {{ result }}</h2>
+        <h3>Confidence: {{ confidence*100 | round(2) }}%</h3>
+        <a href="/hair" class="btn">Try Another</a>
+        <a href="/" class="btn">Go Home</a>
+    </div>
+</body>
+</html>
